@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Resume: {{ resume.file_name }} - Smart ATS{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'resumes:list' %}">Resumes</a></li>
+                <li class="breadcrumb-item active">{{ resume.file_name }}</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0 fw-bold">{{ resume.file_name }}</h4>
+                    <small class="text-muted">
+                        Version {{ resume.version }} &bull; {{ resume.file_format }} &bull; {{ resume.file_size_display }} &bull;
+                        Uploaded {{ resume.created_at|date:"M j, Y H:i" }}
+                    </small>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'resumes:download' resume.pk %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-download me-1"></i> Download File
+                    </a>
+                    {% if is_owner %}
+                        <a href="{% url 'resumes:history' resume.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-clock-history me-1"></i> History
+                        </a>
+                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#replaceModal">
+                            <i class="bi bi-arrow-repeat me-1"></i> Replace Version
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <!-- Status Banner -->
+                <div class="alert {% if resume.parsing_status == 'SUCCESS' or resume.parsing_status == 'OCR_PROCESSED' %}alert-success{% else %}alert-warning{% endif %} d-flex align-items-center mb-4">
+                    <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Extraction Status: {{ resume.get_parsing_status_display }}</strong>
+                        {% if resume.parsing_error %}
+                            <div class="small text-danger mt-1">{{ resume.parsing_error }}</div>
+                        {% else %}
+                            <div class="small">Parsed using Smart ATS Semantic Extraction Engine.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Contact & Bio Grid -->
+                <h5 class="fw-bold mb-3 text-primary text-uppercase small">1. Extracted Identity & Contacts</h5>
+                <div class="row g-3 p-3 bg-light rounded-3 mb-4">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Candidate Name</small>
+                        <strong>{{ resume.extracted_name|default:resume.candidate.get_full_name|default:"Not Detected" }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Email Address</small>
+                        <strong>{{ resume.extracted_email|default:resume.candidate.email }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Phone Number</small>
+                        <strong>{{ resume.extracted_phone|default:"Not Detected" }}</strong>
+                    </div>
+                    <div class="col-md-6 mt-3">
+                        <small class="text-muted d-block">LinkedIn Profile</small>
+                        {% if resume.extracted_linkedin %}
+                            <a href="{{ resume.extracted_linkedin }}" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-linkedin me-1 text-primary"></i>{{ resume.extracted_linkedin }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted">Not specified</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mt-3">
+                        <small class="text-muted d-block">GitHub Profile</small>
+                        {% if resume.extracted_github %}
+                            <a href="{{ resume.extracted_github }}" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-github me-1 text-dark"></i>{{ resume.extracted_github }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted">Not specified</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <h5 class="fw-bold mb-3 text-primary text-uppercase small">2. Extracted Technical & Professional Skills</h5>
+                <div class="p-3 bg-light rounded-3 mb-4">
+                    {% if resume.extracted_skills %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for skill in resume.extracted_skills %}
+                                <span class="badge bg-primary px-3 py-2 fs-6">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0 small">No standardized skills were detected in the text.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Education & Experience -->
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <h5 class="fw-bold mb-3 text-primary text-uppercase small">3. Education Credentials</h5>
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            {% if resume.extracted_education %}
+                                <ul class="list-unstyled mb-0">
+                                    {% for edu in resume.extracted_education %}
+                                        <li class="mb-2"><i class="bi bi-mortarboard me-2 text-primary"></i>{{ edu }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted small mb-0">No degree patterns detected.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <h5 class="fw-bold mb-3 text-primary text-uppercase small">4. Work Experience & Roles</h5>
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            {% if resume.extracted_experience %}
+                                <ul class="list-unstyled mb-0">
+                                    {% for exp in resume.extracted_experience %}
+                                        <li class="mb-2"><i class="bi bi-briefcase me-2 text-success"></i>{{ exp }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted small mb-0">No job titles detected.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects, Certifications, Languages -->
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <h5 class="fw-bold mb-2 text-primary text-uppercase small">Projects</h5>
+                        <div class="p-3 bg-light rounded-3 h-100 small">
+                            {% for prj in resume.extracted_projects %}
+                                <div class="mb-1"><i class="bi bi-code-slash me-1"></i>{{ prj }}</div>
+                            {% empty %}
+                                <span class="text-muted">None detected</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h5 class="fw-bold mb-2 text-primary text-uppercase small">Certifications</h5>
+                        <div class="p-3 bg-light rounded-3 h-100 small">
+                            {% for cert in resume.extracted_certifications %}
+                                <div class="mb-1"><i class="bi bi-patch-check me-1 text-warning"></i>{{ cert }}</div>
+                            {% empty %}
+                                <span class="text-muted">None detected</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h5 class="fw-bold mb-2 text-primary text-uppercase small">Languages</h5>
+                        <div class="p-3 bg-light rounded-3 h-100 small">
+                            {% for lang in resume.extracted_languages %}
+                                <div class="mb-1"><i class="bi bi-translate me-1 text-info"></i>{{ lang }}</div>
+                            {% empty %}
+                                <span class="text-muted">None detected</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Replace Modal -->
+{% if is_owner %}
+<div class="modal fade" id="replaceModal" tabindex="-1" aria-labelledby="replaceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="replaceModalLabel">Upload Revised Version</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'resumes:replace' resume.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Uploading a revised document will increment the version to <strong>v{{ resume.version|add:"1" }}</strong> and safely archive <strong>v{{ resume.version }}</strong> in your history.
+                    </p>
+                    <div class="mb-3">
+                        {{ replace_form.file }}
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">Upload Revision</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

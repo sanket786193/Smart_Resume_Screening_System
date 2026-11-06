@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}AI ATS Screening Report - {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between border-b pb-6">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                AI Screening Evaluation
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Candidate ATS Analysis</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Target Role: <strong class="text-slate-800">{{ job.title }}</strong> &bull; Candidate: <strong class="text-slate-800">{{ candidate_user.get_full_name|default:candidate_user.username }}</strong>
+            </p>
+        </div>
+        <div class="mt-4 md:mt-0 flex gap-3">
+            <a href="{% url 'jobs:detail' job.slug %}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+                View Job
+            </a>
+            <a href="{% url 'resumes:detail' resume.id %}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+                View Resume
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Score & Match Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Composite Score Card -->
+        <div class="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-emerald-500/10 rounded-full blur-2xl"></div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">Composite ATS Score</span>
+                <div class="flex items-baseline gap-2 mt-4">
+                    <span class="text-6xl font-black tracking-tight text-white">{{ result.overall_score }}</span>
+                    <span class="text-2xl font-bold text-emerald-400">/ 100</span>
+                </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <span class="text-sm font-medium text-slate-300">Match Classification:</span>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-400 text-slate-950">
+                    {{ tier }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Semantic Vector Match Card -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Cosine Similarity (TF-IDF)</span>
+                <div class="flex items-baseline gap-2 mt-4">
+                    <span class="text-5xl font-black text-slate-800">{{ result.match_percentage }}%</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">
+                    Semantic alignment between resume text and job description responsibilities.
+                </p>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 mt-4">
+                <div class="bg-indigo-600 h-2.5 rounded-full" style="width: {{ result.match_percentage }}%"></div>
+            </div>
+        </div>
+
+        <!-- Skills Coverage Card -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Skills Alignment (Weight 40%)</span>
+                <div class="flex items-baseline gap-2 mt-4">
+                    <span class="text-5xl font-black text-slate-800">{{ result.skills_score }}%</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">
+                    Calculated across required competencies and keyword synonyms.
+                </p>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 mt-4">
+                <div class="bg-teal-600 h-2.5 rounded-full" style="width: {{ result.skills_score }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5-Factor Weighted Score Breakdown -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+        <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Multi-Criteria ATS Evaluation Breakdown
+        </h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                <span class="text-xs text-slate-500 font-medium">Skills (40%)</span>
+                <div class="text-2xl font-bold text-slate-800 mt-1">{{ result.skills_score }}%</div>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                <span class="text-xs text-slate-500 font-medium">Experience (25%)</span>
+                <div class="text-2xl font-bold text-slate-800 mt-1">{{ result.experience_score }}%</div>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                <span class="text-xs text-slate-500 font-medium">Education (15%)</span>
+                <div class="text-2xl font-bold text-slate-800 mt-1">{{ result.education_score }}%</div>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                <span class="text-xs text-slate-500 font-medium">Projects (10%)</span>
+                <div class="text-2xl font-bold text-slate-800 mt-1">{{ result.projects_score }}%</div>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                <span class="text-xs text-slate-500 font-medium">Certifications (10%)</span>
+                <div class="text-2xl font-bold text-slate-800 mt-1">{{ result.certifications_score }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills Match & Gap Analysis -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Matched Skills -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 class="text-base font-bold text-emerald-800 flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Matched Competencies ({{ result.matched_skills|length }})
+            </h3>
+            <div class="flex flex-wrap gap-2">
+                {% for skill in result.matched_skills %}
+                <span class="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold">
+                    {{ skill }}
+                </span>
+                {% empty %}
+                <p class="text-sm text-slate-400 italic">No direct required skill matches detected.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Missing Skills -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 class="text-base font-bold text-rose-800 flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                Missing Requirements ({{ result.missing_skills|length }})
+            </h3>
+            <div class="flex flex-wrap gap-2">
+                {% for skill in result.missing_skills %}
+                <span class="px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold">
+                    {{ skill }}
+                </span>
+                {% empty %}
+                <p class="text-sm text-emerald-600 font-medium">All mandatory skills matched!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Recommendations Section -->
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Actionable AI Recommendations
+        </h3>
+        <ul class="space-y-3">
+            {% for rec in result.recommendations %}
+            <li class="flex items-start gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 text-sm text-slate-700">
+                <span class="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                    {{ forloop.counter }}
+                </span>
+                <span>{{ rec }}</span>
+            </li>
+            {% empty %}
+            <li class="text-sm text-slate-500">No additional recommendations generated.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

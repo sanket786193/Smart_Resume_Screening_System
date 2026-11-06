@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}403 - Permission Denied{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center py-5">
+        <h1 class="display-1 fw-bold text-danger">403</h1>
+        <h2 class="h4 mb-3">Access Denied / Forbidden</h2>
+        <p class="text-muted mb-4">{{ exception|default:"You do not have the required permissions to access this resource." }}</p>
+        <a href="/" class="btn btn-primary">Return to Safety</a>
+    </div>
+</div>
+{% endblock %}
+

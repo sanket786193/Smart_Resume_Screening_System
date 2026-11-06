@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Resume History - Smart ATS{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'resumes:list' %}">Resumes</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'resumes:detail' resume.pk %}">{{ resume.file_name }}</a></li>
+                <li class="breadcrumb-item active">Version History</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h4 class="mb-0 fw-bold">Version History for {{ resume.file_name }}</h4>
+                <span class="badge bg-primary">Current Active: v{{ resume.version }}</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="timeline">
+                    <!-- Current active version -->
+                    <div class="card border-primary border-2 mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="fw-bold mb-1 text-primary">Version {{ resume.version }} (Active Version)</h6>
+                                <span class="badge bg-success">Current</span>
+                            </div>
+                            <small class="text-muted d-block mb-2">Uploaded on {{ resume.updated_at|date:"F j, Y H:i" }} &bull; {{ resume.file_size_display }}</small>
+                            <a href="{% url 'resumes:download' resume.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-download me-1"></i>Download Active File
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Archived versions -->
+                    {% for archive in history %}
+                        <div class="card bg-light border-0 mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="fw-bold mb-1">Version {{ archive.version }} (Archived)</h6>
+                                    <span class="badge bg-secondary">Archived</span>
+                                </div>
+                                <small class="text-muted d-block mb-2">Superseded on {{ archive.archived_at|date:"F j, Y H:i" }} &bull; {{ archive.file_name }}</small>
+                                <a href="{{ archive.file.url }}" class="btn btn-sm btn-outline-secondary" download>
+                                    <i class="bi bi-download me-1"></i>Download Archived Copy
+                                </a>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center py-4 mb-0">No previous versions have been archived. This document is currently on its initial release (v1).</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

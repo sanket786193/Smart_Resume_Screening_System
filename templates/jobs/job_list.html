@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Explore Jobs - Smart ATS{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-1">Career Opportunities</h2>
+            <p class="text-muted mb-0">Showing {{ total_count }} active job openings matched by AI</p>
+        </div>
+        {% if user.is_authenticated and user.is_recruiter %}
+            <a href="{% url 'jobs:create' %}" class="btn btn-success fw-semibold px-4">
+                <i class="bi bi-plus-circle me-1"></i> Post New Job
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Filter Sidebar -->
+    <div class="col-lg-3 mb-4">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-funnel me-2"></i>Filter Opportunities</h6>
+            </div>
+            <div class="card-body">
+                <form method="get">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Keywords</label>
+                        {{ filter_form.q }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Employment Type</label>
+                        {{ filter_form.job_type }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Workplace Mode</label>
+                        {{ filter_form.workplace_type }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Education Level</label>
+                        {{ filter_form.education_level }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Location</label>
+                        {{ filter_form.location }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Max Experience (Years)</label>
+                        {{ filter_form.max_experience }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Sort By</label>
+                        {{ filter_form.sort_by }}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-semibold mb-2">Apply Filters</button>
+                    <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary w-100 btn-sm">Reset All</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Cards Listing -->
+    <div class="col-lg-9">
+        {% if page_obj %}
+            <div class="row g-3">
+                {% for job in page_obj %}
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0 h-100 hover-card p-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="card-title fw-bold mb-1">
+                                            <a href="{{ job.get_absolute_url }}" class="text-decoration-none text-dark">
+                                                {{ job.title }}
+                                            </a>
+                                        </h5>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-building me-1"></i>{{ job.recruiter.recruiter_profile.company_name|default:job.recruiter.get_full_name|default:job.recruiter.username }}
+                                            &bull;
+                                            <i class="bi bi-geo-alt me-1"></i>{{ job.location }}
+                                            &bull;
+                                            <span class="badge bg-light text-dark border">{{ job.get_job_type_display }}</span>
+                                            <span class="badge bg-light text-dark border">{{ job.get_workplace_type_display }}</span>
+                                        </p>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success-subtle text-success fw-bold px-3 py-2">
+                                            {{ job.days_remaining }} days left
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <p class="card-text text-secondary small mb-3">
+                                    {{ job.description|truncatewords:32 }}
+                                </p>
+
+                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                    {% for req in job.job_required_skills.all|slice:":6" %}
+                                        <span class="badge {% if req.is_mandatory %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                                            {{ req.skill.name }}
+                                        </span>
+                                    {% endfor %}
+                                    {% if job.skills.count > 6 %}
+                                        <span class="badge bg-light text-muted">+{{ job.skills.count|add:"-6" }} more</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                    <span class="text-muted small">
+                                        <i class="bi bi-briefcase me-1"></i>{{ job.experience_min }}-{{ job.experience_max }} yrs exp
+                                        &bull;
+                                        <i class="bi bi-eye me-1"></i>{{ job.views_count }} views
+                                    </span>
+                                    <a href="{{ job.get_absolute_url }}" class="btn btn-outline-primary btn-sm fw-semibold">
+                                        View Details & Apply <i class="bi bi-arrow-right ms-1"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        </li>
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="card border-0 shadow-sm text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-search display-3 text-muted mb-3"></i>
+                    <h4>No job openings match your search criteria</h4>
+                    <p class="text-muted">Try broadening your keywords or resetting filters to find matching opportunities.</p>
+                    <a href="{% url 'jobs:list' %}" class="btn btn-primary">Clear Filters</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

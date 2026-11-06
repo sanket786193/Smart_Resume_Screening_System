@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}My Resumes - Smart ATS{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-1">Resume Management</h2>
+            <p class="text-muted mb-0">Upload, manage versions, and inspect AI-extracted competencies from your resumes.</p>
+        </div>
+        <button type="button" class="btn btn-primary fw-bold px-4" data-bs-toggle="modal" data-bs-target="#uploadResumeModal">
+            <i class="bi bi-cloud-arrow-up me-1"></i> Upload New Resume
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    {% for resume in resumes %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100 p-3 {% if resume.is_primary %}border-start border-4 border-primary{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="fw-bold mb-1">
+                                <a href="{% url 'resumes:detail' resume.pk %}" class="text-decoration-none text-dark">
+                                    {{ resume.file_name }}
+                                </a>
+                            </h5>
+                            <small class="text-muted">
+                                Format: <strong>{{ resume.file_format }}</strong> &bull;
+                                Size: <strong>{{ resume.file_size_display }}</strong> &bull;
+                                Version: <span class="badge bg-secondary">v{{ resume.version }}</span>
+                            </small>
+                        </div>
+                        <div>
+                            {% if resume.is_primary %}
+                                <span class="badge bg-primary">Primary Default</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="my-3">
+                        <small class="text-muted d-block mb-1">Extraction Status</small>
+                        {% if resume.parsing_status == 'SUCCESS' %}
+                            <span class="badge bg-success-subtle text-success fw-bold"><i class="bi bi-check-circle me-1"></i>Parsed Successfully</span>
+                        {% elif resume.parsing_status == 'OCR_PROCESSED' %}
+                            <span class="badge bg-info-subtle text-info fw-bold"><i class="bi bi-camera me-1"></i>Parsed via OCR</span>
+                        {% elif resume.parsing_status == 'PENDING' %}
+                            <span class="badge bg-warning-subtle text-warning fw-bold"><i class="bi bi-hourglass me-1"></i>Pending Extraction</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>Parsing Failed</span>
+                        {% endif %}
+                    </div>
+
+                    {% if resume.extracted_skills %}
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">Extracted Skills ({{ resume.extracted_skills|length }})</small>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for skill in resume.extracted_skills|slice:":6" %}
+                                    <span class="badge bg-light text-dark border">{{ skill }}</span>
+                                {% endfor %}
+                                {% if resume.extracted_skills|length > 6 %}
+                                    <span class="badge bg-light text-muted">+{{ resume.extracted_skills|length|add:"-6" }} more</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-3">
+                        <small class="text-muted">Updated {{ resume.updated_at|timesince }} ago</small>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'resumes:detail' resume.pk %}" class="btn btn-outline-secondary" title="View Intelligence">
+                                <i class="bi bi-eye"></i> Details
+                            </a>
+                            <a href="{% url 'resumes:download' resume.pk %}" class="btn btn-outline-secondary" title="Download">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            <a href="{% url 'resumes:history' resume.pk %}" class="btn btn-outline-secondary" title="Version History">
+                                <i class="bi bi-clock-history"></i>
+                            </a>
+                            <form method="post" action="{% url 'resumes:delete' resume.pk %}" class="d-inline" onsubmit="return confirm('Delete this resume permanently?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-file-earmark-person display-3 text-muted mb-3"></i>
+                    <h4>No Resumes Uploaded Yet</h4>
+                    <p class="text-muted">Upload your CV in PDF or DOCX format to receive automated AI skill profiling.</p>
+                    <button type="button" class="btn btn-primary px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#uploadResumeModal">
+                        Upload Your Resume
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadResumeModal" tabindex="-1" aria-labelledby="uploadResumeLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="uploadResumeLabel">Upload Resume Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'resumes:upload' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Choose File (PDF or DOCX, max 10MB)</label>
+                        {{ form.file }}
+                    </div>
+                    <div class="form-check mb-2">
+                        {{ form.is_primary }}
+                        <label class="form-check-label fw-semibold" for="{{ form.is_primary.id_for_label }}">
+                            Set as Primary Default Resume
+                        </label>
+                    </div>
+                    <small class="text-muted">
+                        Our AI engine will parse your skills, work experience, projects, and educational credentials automatically.
+                    </small>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Upload & Parse</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
